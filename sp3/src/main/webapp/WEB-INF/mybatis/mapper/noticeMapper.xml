@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="notice">
+	<select id="seq" resultType="Integer">
+		select notice_seq.nextval from dual
+	</select>
+	
+	<insert id="insertNotice" parameterType="com.sp.notice.Notice">
+		insert into notice(num, notice, userId, subject, content) values 
+		(#{num}, #{notice}, #{userId}, #{subject}, #{content})
+	</insert>
+	<insert id="insertNoticeFile" parameterType="com.sp.notice.Notice">
+		insert into noticeFile(fileNum, num, saveFilename, originalFilename, fileSize) values 
+		(noticeFile_seq.nextval, #{num}, #{saveFilename}, #{originalFilename},
+		#{fileSize})
+	</insert>
+	
+	<sql id="where-list">
+		<choose>
+			<when test="condition == 'all'">
+				(INSTR(subject, #{keyword}) &gt; 0 
+				or DBMS_LOB.instr(content, #{keyword}) &gt; 0)
+			</when>
+			<when test="condition == 'content'">
+				DBMS_LOB.instr(content, #{keyword}) &gt; 0
+			</when>
+			<when test="condition=='created'">
+				(to_char(created, 'yyyy-mm-dd') = #{keyword}
+				 or to_char(created, 'yyyymmdd') = #{keyword})
+			</when>
+			<otherwise>
+				instr(${condition}, #{keyword}) &gt; 0
+			</otherwise>
+		</choose>
+	</sql>
+	
+	<select id="dataCount" parameterType="map" resultType="Integer">
+		select nvl(count(*), 0) from notice n join member1 m on n.userId=m.userId
+	<where>
+		<if test="keyword != null and keyword != ''">
+			<include refid="where-list"/>
+		</if>
+	</where>
+	</select>
+	
+	<select id="listNoticeTop" resultType="com.sp.notice.Notice">
+		select n.num, notice, subject, userName, hitCount, to_char(created, 'yyyy-mm-dd') created, nvl(fileCount, 0) fileCount
+		from notice n 
+		join member1 m1 on m1.userId=n.userId
+		left outer join (
+			select num, count(*) fileCount from noticeFile
+			group by num
+		) f on n.num = f.num
+		where notice = 1
+		order by num desc
+	</select>
+	
+	<select id="listNotice" parameterType="map" resultType="com.sp.notice.Notice">
+		select n.num, notice, subject, userName, hitCount, created, nvl(fileCount, 0) fileCount
+		from notice n 
+		join member1 m1 on m1.userId=n.userId
+		left outer join (
+			select num, count(*) fileCount from noticeFile
+			group by num
+		) f on n.num = f.num
+		<where>
+			<if test="keyword != null and keyword != '' ">
+				<include refid="where-list"/>
+			</if>
+		</where>
+		order by num desc
+		offset #{offset} rows fetch first #{rows} rows only
+	</select>
+	
+	<select id="readNotice" parameterType="Integer" resultType="com.sp.notice.Notice">
+		select n.num, n.userId, userName, subject, created, content, 
+		hitCount, notice
+		from notice n
+		join member1 m1 on m1.userId=n.userId
+		where n.num = #{num}
+	</select>
+	
+	<select id="preReadNotice" parameterType="map" resultType="com.sp.notice.Notice">
+		select num, subject 
+		from notice n
+		join member1 m on n.userId=m.userId
+		<where>
+			<if test="keyword != null and keyword != '' ">
+				<include refid="where-list"/>
+			</if>
+			and (num &gt; #{num})
+		</where>
+		order by num asc fetch first 1 rows only
+	</select>
+	
+	<select id="nextReadNotice" parameterType="map" resultType="com.sp.notice.Notice">
+		select num, subject 
+		from notice n
+		join member1 m on n.userId=m.userId
+		<where>
+			<if test="keyword != null and keyword != '' ">
+				<include refid="where-list"/>
+			</if>
+			and (num &lt; #{num})
+		</where>
+		order by num desc fetch first 1 rows only
+	</select>
+	
+	<select id="updateHitCount" parameterType="Integer">
+		update notice set hitCount= hitCount+1
+		where num = #{num}
+	</select>
+	
+	<update id="updateNotice" parameterType="com.sp.notice.Notice">
+		update notice set subject=#{subject}, content=#{content}, notice=#{notice}
+		where num = #{num}
+	</update>
+	
+	<delete id="deleteNotice" parameterType="Integer">
+		delete from notice where num=#{num}
+	</delete>
+	
+	<delete id="deleteFile" parameterType="map">
+		delete from noticeFile where ${field} = #{num}
+	</delete>
+	
+	<select id="readFile" parameterType="Integer" resultType="com.sp.notice.Notice">
+		select fileNum, num, saveFilename, originalFilename, fileSize
+		from noticeFile
+   		where fileNum = #{fileNum}
+	</select>
+	
+	<select id="listFile" parameterType="Integer" resultType="com.sp.notice.Notice">
+		select fileNum, num, saveFilename, originalFilename, fileSize
+		from noticeFile
+		where num = #{num}
+	</select>
+	
+</mapper>
