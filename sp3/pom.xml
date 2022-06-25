@@ -51,7 +51,7 @@
 		<mongo-java-driver.version>3.10.2</mongo-java-driver.version>
 		<!-- mongodb : spring-data 2.x는 Java8, Spring Framework 5.0.7.RELEASE 이상 필요 -->
 		<spring-data-commons.version>1.13.22.RELEASE</spring-data-commons.version>
-		<spring-data-mongodb.version>1.10.22.RELEASE</spring-data-mongodb.version>
+		<spring-data-mongodb.version>3.3.5</spring-data-mongodb.version>
 		
 		<!-- org.json -->
 		<json.version>20180813</json.version>
